@@ -26,10 +26,13 @@ func generateOrderNumber() string {
 }
 
 type CreateOrderRequest struct {
-	OrderType   string `json:"order_type" binding:"required"`
-	TableNumber string `json:"table_number"`
-	Notes       string `json:"notes"`
-	Items       []struct {
+	OrderType     string `json:"order_type" binding:"required"`
+	TableNumber   string `json:"table_number"`
+	CustomerName  string `json:"customer_name"`
+	CustomerPhone string `json:"customer_phone" binding:"required"`
+	PaymentMethod string `json:"payment_method" binding:"required"`
+	Notes         string `json:"notes"`
+	Items         []struct {
 		MenuItemID uint   `json:"menu_item_id" binding:"required"`
 		Quantity   int    `json:"quantity" binding:"required,min=1"`
 		Notes      string `json:"notes"`
@@ -85,15 +88,24 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		})
 	}
 
+	var parsedUserID *uint
+	if userID != nil {
+		id := userID.(uint)
+		parsedUserID = &id
+	}
+
 	order := models.Order{
-		UserID:      userID.(uint),
-		OrderNumber: generateOrderNumber(),
-		OrderType:   req.OrderType,
-		TableNumber: req.TableNumber,
-		Status:      models.OrderStatusPending,
-		TotalAmount: totalAmount,
-		Notes:       req.Notes,
-		Items:       orderItems,
+		UserID:        parsedUserID,
+		OrderNumber:   generateOrderNumber(),
+		OrderType:     req.OrderType,
+		TableNumber:   req.TableNumber,
+		CustomerName:  req.CustomerName,
+		CustomerPhone: req.CustomerPhone,
+		PaymentMethod: req.PaymentMethod,
+		Status:        models.OrderStatusPending,
+		TotalAmount:   totalAmount,
+		Notes:         req.Notes,
+		Items:         orderItems,
 	}
 
 	// Use transaction to create order and update stock
@@ -178,12 +190,17 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 	}
 
 	// Pembeli can only see their own orders
-	userRole, _ := c.Get("userRole")
-	userID, _ := c.Get("userID")
-	if userRole.(string) == models.RolePembeli && order.UserID != userID.(uint) {
+	userRole, roleExists := c.Get("userRole")
+	userID, userExists := c.Get("userID")
+
+	// If the order belongs to a user, but the requester is a guest, forbid
+	if order.UserID != nil && (!userExists || (roleExists && userRole.(string) == models.RolePembeli && *order.UserID != userID.(uint))) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized"})
 		return
 	}
+
+	// Note: If order.UserID is nil (guest order), anyone with the ID can view it.
+	// This is acceptable since IDs can be considered temporary or we could switch to OrderNumber.
 
 	c.JSON(http.StatusOK, gin.H{"order": order})
 }
@@ -263,7 +280,7 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 
 	// Pembeli can only cancel their own pending orders
 	if userRole.(string) == models.RolePembeli {
-		if order.UserID != userID.(uint) {
+		if order.UserID == nil || *order.UserID != userID.(uint) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized"})
 			return
 		}

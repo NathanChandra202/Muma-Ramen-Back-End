@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -190,21 +191,36 @@ func (h *MenuHandler) UploadImage(c *gin.Context) {
 		return
 	}
 
-	file, err := c.FormFile("image")
+	form, err := c.MultipartForm()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Image file required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse form"})
 		return
 	}
 
-	filename := "menu_" + id + "_" + strconv.FormatInt(time.Now().Unix(), 10) + filepath.Ext(file.Filename)
-	savePath := filepath.Join("uploads", filename)
-
-	if err := c.SaveUploadedFile(file, savePath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
+	files := form.File["images"]
+	if len(files) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Image files required"})
 		return
 	}
 
-	item.ImageURL = "/uploads/" + filename
+	var urls []string
+	for i, file := range files {
+		filename := "menu_" + id + "_" + strconv.FormatInt(time.Now().Unix(), 10) + "_" + strconv.Itoa(i) + filepath.Ext(file.Filename)
+		savePath := filepath.Join("uploads", filename)
+
+		if err := c.SaveUploadedFile(file, savePath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
+			return
+		}
+		urls = append(urls, "/uploads/"+filename)
+	}
+
+	if len(urls) > 0 {
+		item.ImageURL = urls[0]
+		bytes, _ := json.Marshal(urls)
+		item.Images = string(bytes)
+	}
+	
 	h.DB.Save(&item)
 
 	c.JSON(http.StatusOK, gin.H{"menu_item": item})

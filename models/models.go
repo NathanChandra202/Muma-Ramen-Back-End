@@ -62,6 +62,7 @@ type MenuItem struct {
 	Description string         `gorm:"size:500" json:"description"`
 	Price       float64        `gorm:"not null" json:"price"`
 	ImageURL    string         `gorm:"size:500" json:"image_url"`
+	Images      string         `gorm:"type:text" json:"images"`
 	IsAvailable bool           `gorm:"default:true" json:"is_available"`
 	Stock       int            `gorm:"default:100" json:"stock"`
 	CreatedAt   time.Time      `json:"created_at"`
@@ -71,19 +72,22 @@ type MenuItem struct {
 
 // Order model
 type Order struct {
-	ID          uint           `gorm:"primarykey" json:"id"`
-	UserID      uint           `gorm:"not null" json:"user_id"`
-	User        User           `gorm:"foreignKey:UserID" json:"user,omitempty"`
-	OrderNumber string         `gorm:"size:20;uniqueIndex;not null" json:"order_number"`
-	OrderType   string         `gorm:"size:20;not null;default:'dine_in'" json:"order_type"`
-	TableNumber string         `gorm:"size:10" json:"table_number"`
-	Status      string         `gorm:"size:20;not null;default:'pending'" json:"status"`
-	TotalAmount float64        `gorm:"not null;default:0" json:"total_amount"`
-	Notes       string         `gorm:"size:500" json:"notes"`
-	Items       []OrderItem    `gorm:"foreignKey:OrderID" json:"items,omitempty"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	ID           uint           `gorm:"primarykey" json:"id"`
+	UserID       *uint          `json:"user_id"`
+	User         User           `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	OrderNumber  string         `gorm:"size:20;uniqueIndex;not null" json:"order_number"`
+	OrderType    string         `gorm:"size:20;not null;default:'dine_in'" json:"order_type"`
+	TableNumber  string         `gorm:"size:10" json:"table_number"`
+	CustomerName string         `gorm:"size:100" json:"customer_name"`
+	CustomerPhone string        `gorm:"size:20" json:"customer_phone"`
+	PaymentMethod string        `gorm:"size:50" json:"payment_method"`
+	Status       string         `gorm:"size:20;not null;default:'pending'" json:"status"`
+	TotalAmount  float64        `gorm:"not null;default:0" json:"total_amount"`
+	Notes        string         `gorm:"size:500" json:"notes"`
+	Items        []OrderItem    `gorm:"foreignKey:OrderID" json:"items,omitempty"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // OrderItem model

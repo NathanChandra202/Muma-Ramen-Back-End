@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -53,10 +54,11 @@ func main() {
 
 	// CORS
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowOriginFunc:  func(origin string) bool { return true }, // Allow all origins for local dev
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept", "User-Agent", "Cache-Control", "Pragma", "Access-Control-Request-Method", "Access-Control-Request-Headers"},
 		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
 	}))
 
 	// Serve static files
@@ -87,8 +89,8 @@ func main() {
 				menuAuth.POST("", middleware.RequireRole(models.RoleAdmin, models.RoleSuperAdmin), menuHandler.CreateMenuItem)
 				menuAuth.PUT("/:id", middleware.RequireRole(models.RoleAdmin, models.RoleSuperAdmin), menuHandler.UpdateMenuItem)
 				menuAuth.DELETE("/:id", middleware.RequireRole(models.RoleAdmin, models.RoleSuperAdmin), menuHandler.DeleteMenuItem)
-				menuAuth.PATCH("/:id/stock", middleware.RequireRole(models.RoleKasir, models.RoleAdmin, models.RoleSuperAdmin), menuHandler.UpdateStock)
-				menuAuth.PATCH("/:id/availability", middleware.RequireRole(models.RoleKasir, models.RoleAdmin, models.RoleSuperAdmin), menuHandler.ToggleAvailability)
+				menuAuth.PUT("/:id/stock", middleware.RequireRole(models.RoleKasir, models.RoleAdmin, models.RoleSuperAdmin), menuHandler.UpdateStock)
+				menuAuth.PUT("/:id/availability", middleware.RequireRole(models.RoleKasir, models.RoleAdmin, models.RoleSuperAdmin), menuHandler.ToggleAvailability)
 				menuAuth.POST("/:id/image", middleware.RequireRole(models.RoleAdmin, models.RoleSuperAdmin), menuHandler.UploadImage)
 			}
 		}
@@ -107,15 +109,25 @@ func main() {
 			}
 		}
 
-		// Order routes (all authenticated)
+		// Order routes
 		orders := api.Group("/orders")
-		orders.Use(middleware.AuthMiddleware(cfg))
 		{
-			orders.POST("", middleware.RequireRole(models.RolePembeli, models.RoleKasir, models.RoleAdmin), orderHandler.CreateOrder)
-			orders.GET("", orderHandler.ListOrders)
-			orders.GET("/:id", orderHandler.GetOrder)
-			orders.PATCH("/:id/status", middleware.RequireRole(models.RoleKasir, models.RoleAdmin, models.RoleSuperAdmin), orderHandler.UpdateOrderStatus)
-			orders.DELETE("/:id", orderHandler.CancelOrder)
+			// Optional Auth for creating and viewing a specific order (guest checkout)
+			ordersGuest := orders.Group("")
+			ordersGuest.Use(middleware.OptionalAuthMiddleware(cfg))
+			{
+				ordersGuest.POST("", orderHandler.CreateOrder)
+				ordersGuest.GET("/:id", orderHandler.GetOrder)
+			}
+
+			// Require Auth for management
+			ordersAuth := orders.Group("")
+			ordersAuth.Use(middleware.AuthMiddleware(cfg))
+			{
+				ordersAuth.GET("", orderHandler.ListOrders)
+				ordersAuth.PUT("/:id/status", middleware.RequireRole(models.RoleKasir, models.RoleAdmin, models.RoleSuperAdmin), orderHandler.UpdateOrderStatus)
+				ordersAuth.DELETE("/:id", orderHandler.CancelOrder)
+			}
 		}
 
 		// User management routes (admin+)
