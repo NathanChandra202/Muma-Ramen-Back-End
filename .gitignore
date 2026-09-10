@@ -19,3 +19,6 @@
 # Uploaded files
 uploads/*
 !uploads/.keep
+
+# Environment variables (jangan di-commit!)
+.env

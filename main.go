@@ -8,6 +8,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
 	"muma-ramen-backend/config"
@@ -21,10 +22,22 @@ func main() {
 	cfg := config.Load()
 
 	// Connect to database
-	db, err := gorm.Open(sqlite.Open(cfg.DBPath), &gorm.Config{})
+	var db *gorm.DB
+	var err error
+
+	switch cfg.DBDriver {
+	case "postgres":
+		log.Println("🐘 Connecting to PostgreSQL...")
+		db, err = gorm.Open(postgres.Open(cfg.PostgresDSN()), &gorm.Config{})
+	default:
+		log.Println("🗄️  Connecting to SQLite...")
+		db, err = gorm.Open(sqlite.Open(cfg.DBPath), &gorm.Config{})
+	}
+
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
+	log.Println("✅ Database connected successfully")
 
 	// Auto migrate
 	db.AutoMigrate(
