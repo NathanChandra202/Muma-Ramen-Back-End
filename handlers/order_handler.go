@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"math/rand"
 	"net/http"
 	"time"
 
@@ -20,17 +19,24 @@ func NewOrderHandler(db *gorm.DB) *OrderHandler {
 	return &OrderHandler{DB: db}
 }
 
-func generateOrderNumber() string {
+func (h *OrderHandler) generateOrderNumber() string {
 	now := time.Now()
-	return fmt.Sprintf("MR%s%04d", now.Format("0601"), rand.Intn(10000))
+	dateStr := now.Format("060102") // YYMMDD
+
+	var count int64
+	// Count orders created today
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	h.DB.Model(&models.Order{}).Where("created_at >= ?", todayStart).Count(&count)
+
+	return fmt.Sprintf("MRB%s%05d", dateStr, count+1)
 }
 
 type CreateOrderRequest struct {
 	OrderType     string `json:"order_type" binding:"required"`
 	TableNumber   string `json:"table_number"`
 	CustomerName  string `json:"customer_name"`
-	CustomerPhone string `json:"customer_phone" binding:"required"`
-	PaymentMethod string `json:"payment_method" binding:"required"`
+	CustomerPhone string `json:"customer_phone"`
+	PaymentMethod string `json:"payment_method"`
 	Notes         string `json:"notes"`
 	Items         []struct {
 		MenuItemID uint   `json:"menu_item_id" binding:"required"`
@@ -94,9 +100,23 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		parsedUserID = &id
 	}
 
+	userRole, _ := c.Get("userRole")
+	isPembeli := userRole == nil || userRole.(string) == models.RolePembeli
+
+	if isPembeli {
+		if req.CustomerPhone == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nomor telepon wajib diisi"})
+			return
+		}
+		if req.PaymentMethod == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Metode pembayaran wajib dipilih"})
+			return
+		}
+	}
+
 	order := models.Order{
 		UserID:        parsedUserID,
-		OrderNumber:   generateOrderNumber(),
+		OrderNumber:   h.generateOrderNumber(),
 		OrderType:     req.OrderType,
 		TableNumber:   req.TableNumber,
 		CustomerName:  req.CustomerName,

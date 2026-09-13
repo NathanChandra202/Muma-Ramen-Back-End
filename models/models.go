@@ -34,6 +34,7 @@ type User struct {
 	ID           uint           `gorm:"primarykey" json:"id"`
 	Name         string         `gorm:"size:100;not null" json:"name"`
 	Email        string         `gorm:"size:100;uniqueIndex;not null" json:"email"`
+	Phone        string         `gorm:"size:20;uniqueIndex" json:"phone"`
 	PasswordHash string         `gorm:"size:255;not null" json:"-"`
 	Role         string         `gorm:"size:20;not null;default:'pembeli'" json:"role"`
 	CreatedAt    time.Time      `json:"created_at"`
@@ -46,6 +47,7 @@ type Category struct {
 	ID          uint           `gorm:"primarykey" json:"id"`
 	Name        string         `gorm:"size:100;not null" json:"name"`
 	Description string         `gorm:"size:255" json:"description"`
+	ImageURL    string         `gorm:"size:500" json:"image_url"`
 	SortOrder   int            `gorm:"default:0" json:"sort_order"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`

@@ -105,6 +105,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	user := models.User{
 		Name:         req.Name,
 		Email:        req.Email,
+		Phone:        req.Email, // using email as default or need to add Phone to CreateUserRequest
 		PasswordHash: string(hashedPassword),
 		Role:         req.Role,
 	}
@@ -137,6 +138,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	var req struct {
 		Name  string `json:"name"`
 		Email string `json:"email"`
+		Phone string `json:"phone"`
 		Role  string `json:"role"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -156,6 +158,9 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	if req.Email != "" {
 		user.Email = req.Email
 	}
+	if req.Phone != "" {
+		user.Phone = req.Phone
+	}
 	if req.Role != "" && req.Role != models.RoleSuperAdmin {
 		user.Role = req.Role
 	}
@@ -167,6 +172,53 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 			"id":    user.ID,
 			"name":  user.Name,
 			"email": user.Email,
+			"phone": user.Phone,
+			"role":  user.Role,
+		},
+	})
+}
+
+// UpdateProfile updates the currently authenticated user's profile
+func (h *UserHandler) UpdateProfile(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	var user models.User
+	if err := h.DB.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	var req struct {
+		Name  string `json:"name"`
+		Email string `json:"email"`
+		Phone string `json:"phone"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if req.Name != "" {
+		user.Name = req.Name
+	}
+	if req.Email != "" {
+		user.Email = req.Email
+	}
+	if req.Phone != "" {
+		user.Phone = req.Phone
+	}
+
+	if err := h.DB.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user": gin.H{
+			"id":    user.ID,
+			"name":  user.Name,
+			"email": user.Email,
+			"phone": user.Phone,
 			"role":  user.Role,
 		},
 	})

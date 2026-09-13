@@ -20,13 +20,14 @@ type AuthHandler struct {
 }
 
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
+	Identifier string `json:"email" binding:"required"` // Identifier can be email or phone, keeping json "email" for frontend compatibility if needed, or we can change it to "identifier". We will keep "email" for now.
+	Password   string `json:"password" binding:"required,min=6"`
 }
 
 type RegisterRequest struct {
 	Name     string `json:"name" binding:"required,min=2"`
 	Email    string `json:"email" binding:"required,email"`
+	Phone    string `json:"phone" binding:"required"`
 	Password string `json:"password" binding:"required,min=6"`
 }
 
@@ -58,10 +59,10 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	// Check if email already exists
+	// Check if email or phone already exists
 	var existing models.User
-	if err := h.DB.Where("email = ?", req.Email).First(&existing).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Email sudah terdaftar"})
+	if err := h.DB.Where("email = ? OR phone = ?", req.Email, req.Phone).First(&existing).Error; err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "Email atau nomor telepon sudah terdaftar"})
 		return
 	}
 
@@ -75,6 +76,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	user := models.User{
 		Name:         req.Name,
 		Email:        req.Email,
+		Phone:        req.Phone,
 		PasswordHash: string(hashedPassword),
 		Role:         models.RolePembeli,
 	}
@@ -96,6 +98,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			"id":    user.ID,
 			"name":  user.Name,
 			"email": user.Email,
+			"phone": user.Phone,
 			"role":  user.Role,
 		},
 	})
@@ -110,13 +113,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := h.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Email atau password salah"})
+	if err := h.DB.Where("email = ? OR phone = ?", req.Identifier, req.Identifier).First(&user).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Email/Nomor Telepon atau password salah"})
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Email atau password salah"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Email/Nomor Telepon atau password salah"})
 		return
 	}
 
@@ -132,6 +135,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			"id":    user.ID,
 			"name":  user.Name,
 			"email": user.Email,
+			"phone": user.Phone,
 			"role":  user.Role,
 		},
 	})
@@ -152,6 +156,7 @@ func (h *AuthHandler) Me(c *gin.Context) {
 			"id":    user.ID,
 			"name":  user.Name,
 			"email": user.Email,
+			"phone": user.Phone,
 			"role":  user.Role,
 		},
 	})

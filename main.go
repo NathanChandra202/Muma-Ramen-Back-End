@@ -105,6 +105,7 @@ func main() {
 				menuAuth.PUT("/:id/stock", middleware.RequireRole(models.RoleKasir, models.RoleAdmin, models.RoleSuperAdmin), menuHandler.UpdateStock)
 				menuAuth.PUT("/:id/availability", middleware.RequireRole(models.RoleKasir, models.RoleAdmin, models.RoleSuperAdmin), menuHandler.ToggleAvailability)
 				menuAuth.POST("/:id/image", middleware.RequireRole(models.RoleAdmin, models.RoleSuperAdmin), menuHandler.UploadImage)
+				menuAuth.POST("/:id/images", middleware.RequireRole(models.RoleAdmin, models.RoleSuperAdmin), menuHandler.UploadImage)
 			}
 		}
 
@@ -119,6 +120,7 @@ func main() {
 				catAuth.POST("", middleware.RequireRole(models.RoleAdmin, models.RoleSuperAdmin), categoryHandler.CreateCategory)
 				catAuth.PUT("/:id", middleware.RequireRole(models.RoleAdmin, models.RoleSuperAdmin), categoryHandler.UpdateCategory)
 				catAuth.DELETE("/:id", middleware.RequireRole(models.RoleAdmin, models.RoleSuperAdmin), categoryHandler.DeleteCategory)
+				catAuth.POST("/:id/image", middleware.RequireRole(models.RoleAdmin, models.RoleSuperAdmin), categoryHandler.UploadImage)
 			}
 		}
 
@@ -143,15 +145,23 @@ func main() {
 			}
 		}
 
-		// User management routes (admin+)
+		// User management routes (admin+ and self)
 		users := api.Group("/users")
-		users.Use(middleware.AuthMiddleware(cfg))
-		users.Use(middleware.RequireRole(models.RoleAdmin, models.RoleSuperAdmin))
+		usersAuth := users.Group("")
+		usersAuth.Use(middleware.AuthMiddleware(cfg))
 		{
-			users.GET("", userHandler.ListUsers)
-			users.POST("", userHandler.CreateUser)
-			users.PUT("/:id", userHandler.UpdateUser)
-			users.DELETE("/:id", middleware.RequireRole(models.RoleSuperAdmin), userHandler.DeleteUser)
+			// Self profile update
+			usersAuth.PUT("/profile", userHandler.UpdateProfile)
+
+			// Admin routes
+			adminUsers := usersAuth.Group("")
+			adminUsers.Use(middleware.RequireRole(models.RoleAdmin, models.RoleSuperAdmin))
+			{
+				adminUsers.GET("", userHandler.ListUsers)
+				adminUsers.POST("", userHandler.CreateUser)
+				adminUsers.PUT("/:id", userHandler.UpdateUser)
+				adminUsers.DELETE("/:id", middleware.RequireRole(models.RoleSuperAdmin), userHandler.DeleteUser)
+			}
 		}
 
 		// Dashboard routes (admin+)

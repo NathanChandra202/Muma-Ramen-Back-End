@@ -101,3 +101,38 @@ func (h *CategoryHandler) DeleteCategory(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Category deleted"})
 }
+
+// UploadImage handles image upload for a category
+func (h *CategoryHandler) UploadImage(c *gin.Context) {
+	id := c.Param("id")
+
+	var cat models.Category
+	if err := h.DB.First(&cat, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
+		return
+	}
+
+	file, err := c.FormFile("image")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No image uploaded"})
+		return
+	}
+
+	// Generate filename
+	filename := "category_" + id + "_" + file.Filename
+	filepath := "uploads/" + filename
+
+	if err := c.SaveUploadedFile(file, filepath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
+		return
+	}
+
+	imageURL := "/uploads/" + filename
+	if err := h.DB.Model(&cat).Update("image_url", imageURL).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update category"})
+		return
+	}
+
+	cat.ImageURL = imageURL
+	c.JSON(http.StatusOK, gin.H{"category": cat})
+}
