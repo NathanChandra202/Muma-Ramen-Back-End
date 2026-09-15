@@ -204,6 +204,10 @@ func (h *MenuHandler) UploadImage(c *gin.Context) {
 	}
 
 	var urls []string
+	if item.Images != "" {
+		json.Unmarshal([]byte(item.Images), &urls)
+	}
+	
 	for i, file := range files {
 		filename := "menu_" + id + "_" + strconv.FormatInt(time.Now().Unix(), 10) + "_" + strconv.Itoa(i) + filepath.Ext(file.Filename)
 		savePath := filepath.Join("uploads", filename)
