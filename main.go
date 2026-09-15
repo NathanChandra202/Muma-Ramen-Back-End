@@ -80,6 +80,10 @@ func main() {
 
 	// API routes
 	api := r.Group("/api")
+	
+	// Serve static files via API route to bypass NGINX proxy blocks
+	api.Static("/uploads", "./uploads")
+	api.Static("/images", "./images")
 	{
 		// Auth routes (public)
 		auth := api.Group("/auth")
