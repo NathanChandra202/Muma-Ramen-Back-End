@@ -16,6 +16,7 @@ const (
 
 // Order status constants
 const (
+	OrderStatusUnpaid    = "unpaid"
 	OrderStatusPending   = "pending"
 	OrderStatusPreparing = "preparing"
 	OrderStatusReady     = "ready"
@@ -83,7 +84,7 @@ type Order struct {
 	CustomerName string         `gorm:"size:100" json:"customer_name"`
 	CustomerPhone string        `gorm:"size:20" json:"customer_phone"`
 	PaymentMethod string        `gorm:"size:50" json:"payment_method"`
-	Status       string         `gorm:"size:20;not null;default:'pending'" json:"status"`
+	Status       string         `gorm:"size:20;not null;default:'unpaid'" json:"status"`
 	TotalAmount  float64        `gorm:"not null;default:0" json:"total_amount"`
 	Notes        string         `gorm:"size:500" json:"notes"`
 	Items        []OrderItem    `gorm:"foreignKey:OrderID" json:"items,omitempty"`

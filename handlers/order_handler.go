@@ -122,7 +122,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		CustomerName:  req.CustomerName,
 		CustomerPhone: req.CustomerPhone,
 		PaymentMethod: req.PaymentMethod,
-		Status:        models.OrderStatusPending,
+		Status:        models.OrderStatusUnpaid,
 		TotalAmount:   totalAmount,
 		Notes:         req.Notes,
 		Items:         orderItems,
@@ -245,6 +245,7 @@ func (h *OrderHandler) UpdateOrderStatus(c *gin.Context) {
 
 	// Validate status transition
 	validTransitions := map[string][]string{
+		models.OrderStatusUnpaid:    {models.OrderStatusPending, models.OrderStatusCancelled},
 		models.OrderStatusPending:   {models.OrderStatusPreparing, models.OrderStatusCancelled},
 		models.OrderStatusPreparing: {models.OrderStatusReady, models.OrderStatusCancelled},
 		models.OrderStatusReady:     {models.OrderStatusCompleted},
@@ -304,8 +305,8 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized"})
 			return
 		}
-		if order.Status != models.OrderStatusPending {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Hanya pesanan pending yang bisa dibatalkan"})
+		if order.Status != models.OrderStatusPending && order.Status != models.OrderStatusUnpaid {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Hanya pesanan pending / belum dibayar yang bisa dibatalkan"})
 			return
 		}
 	}
