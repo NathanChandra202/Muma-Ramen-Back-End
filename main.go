@@ -46,6 +46,7 @@ func main() {
 		&models.MenuItem{},
 		&models.Order{},
 		&models.OrderItem{},
+		&models.Setting{},
 	)
 
 	// Create uploads directory
@@ -61,6 +62,7 @@ func main() {
 	orderHandler := handlers.NewOrderHandler(db)
 	userHandler := handlers.NewUserHandler(db)
 	dashboardHandler := handlers.NewDashboardHandler(db)
+	settingHandler := handlers.NewSettingHandler(db)
 
 	// Setup router
 	r := gin.Default()
@@ -91,6 +93,16 @@ func main() {
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.GET("/me", middleware.AuthMiddleware(cfg), authHandler.Me)
+		}
+
+		// Public setting endpoint
+		api.GET("/settings", settingHandler.GetSettings)
+
+		// Settings management routes (admin+ only)
+		settingsAuth := api.Group("/settings")
+		settingsAuth.Use(middleware.AuthMiddleware(cfg), middleware.RequireRole(models.RoleAdmin, models.RoleSuperAdmin))
+		{
+			settingsAuth.PUT("", settingHandler.UpdateSettings)
 		}
 
 		// Menu routes (public read, auth for write)

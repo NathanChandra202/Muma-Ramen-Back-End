@@ -104,3 +104,10 @@ type OrderItem struct {
 	Subtotal   float64  `gorm:"not null" json:"subtotal"`
 	Notes      string   `gorm:"size:255" json:"notes"`
 }
+
+// Setting model
+type Setting struct {
+	Key       string    `gorm:"primarykey;size:100" json:"key"`
+	Value     string    `gorm:"type:text" json:"value"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
