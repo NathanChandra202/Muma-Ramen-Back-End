@@ -103,6 +103,7 @@ func main() {
 		settingsAuth.Use(middleware.AuthMiddleware(cfg), middleware.RequireRole(models.RoleAdmin, models.RoleSuperAdmin))
 		{
 			settingsAuth.PUT("", settingHandler.UpdateSettings)
+			settingsAuth.POST("/image", settingHandler.UploadSettingImage)
 		}
 
 		// Menu routes (public read, auth for write)
