@@ -35,6 +35,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 	// Default values
 	result["store_name"] = "Muma Cibubur"
 	result["store_hours"] = "Buka • 10:00 - 22:00"
+	result["tax_rate"] = "10"
 
 	for _, s := range settings {
 		result[s.Key] = s.Value

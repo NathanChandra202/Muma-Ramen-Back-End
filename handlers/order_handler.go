@@ -114,6 +114,16 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		}
 	}
 
+	var taxSetting models.Setting
+	var taxRate float64 = 10 // default
+	if err := h.DB.Where("key = ?", "tax_rate").First(&taxSetting).Error; err == nil {
+		fmt.Sscanf(taxSetting.Value, "%f", &taxRate)
+	}
+
+	subtotalAmount := totalAmount
+	taxAmount := subtotalAmount * taxRate / 100
+	finalTotal := subtotalAmount + taxAmount
+
 	order := models.Order{
 		UserID:        parsedUserID,
 		OrderNumber:   h.generateOrderNumber(),
@@ -123,7 +133,10 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		CustomerPhone: req.CustomerPhone,
 		PaymentMethod: req.PaymentMethod,
 		Status:        models.OrderStatusUnpaid,
-		TotalAmount:   totalAmount,
+		SubtotalAmount: subtotalAmount,
+		TaxRate:       taxRate,
+		TaxAmount:     taxAmount,
+		TotalAmount:   finalTotal,
 		Notes:         req.Notes,
 		Items:         orderItems,
 	}

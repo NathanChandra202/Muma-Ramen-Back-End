@@ -85,6 +85,9 @@ type Order struct {
 	CustomerPhone string        `gorm:"size:20" json:"customer_phone"`
 	PaymentMethod string        `gorm:"size:50" json:"payment_method"`
 	Status       string         `gorm:"size:20;not null;default:'unpaid'" json:"status"`
+	SubtotalAmount float64      `gorm:"not null;default:0" json:"subtotal_amount"`
+	TaxRate      float64        `gorm:"not null;default:0" json:"tax_rate"`
+	TaxAmount    float64        `gorm:"not null;default:0" json:"tax_amount"`
 	TotalAmount  float64        `gorm:"not null;default:0" json:"total_amount"`
 	Notes        string         `gorm:"size:500" json:"notes"`
 	Items        []OrderItem    `gorm:"foreignKey:OrderID" json:"items,omitempty"`
