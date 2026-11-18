@@ -98,12 +98,13 @@ func main() {
 		// Public setting endpoint
 		api.GET("/settings", settingHandler.GetSettings)
 
-		// Settings management routes (admin+ only)
-		settingsAuth := api.Group("/settings")
-		settingsAuth.Use(middleware.AuthMiddleware(cfg), middleware.RequireRole(models.RoleAdmin, models.RoleSuperAdmin))
+		// Settings write routes — superadmin only
+		settingsSuperAdmin := api.Group("/settings")
+		settingsSuperAdmin.Use(middleware.AuthMiddleware(cfg), middleware.RequireRole(models.RoleSuperAdmin))
 		{
-			settingsAuth.PUT("", settingHandler.UpdateSettings)
-			settingsAuth.POST("/image", settingHandler.UploadSettingImage)
+			settingsSuperAdmin.PUT("", settingHandler.UpdateSettings)
+			settingsSuperAdmin.POST("/logo", settingHandler.UploadLogo)
+			settingsSuperAdmin.POST("/image", settingHandler.UploadSettingImage) // generic, backward compat
 		}
 
 		// Menu routes (public read, auth for write)
